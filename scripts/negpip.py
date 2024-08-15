@@ -2,7 +2,17 @@ import gradio as gr
 import torch
 import re
 import json
-import ldm.modules.attention as atm
+try:
+    from backend import attention as atm
+except:
+    import ldm.modules.attention as atm
+
+try:
+    from backend.text_processing import classic_engine
+    forge_latest= True
+except:
+    forge_latest= False
+
 import modules.ui
 import modules
 from modules import prompt_parser
@@ -14,8 +24,12 @@ debug = False
 debug_p = False
 
 try:
-    from ldm_patched.modules import model_management
-    forge = True
+    try:
+        from backend import model_management
+        forge = True
+    except:
+        from ldm_patched.modules import model_management
+        forge = True
 except:
     forge = False
 
@@ -117,8 +131,9 @@ class Script(modules.scripts.Script):
         self.rev = p.sampler_name in ["DDIM", "PLMS", "UniPC"]
         if forge: self.rev = not self.rev
 
-        tokenizer = shared.sd_model.conditioner.embedders[0].tokenize_line if self.isxl else shared.sd_model.cond_stage_model.tokenize_line
-
+        if forge_latest: tokenizer = classic_engine.ClassicTextProcessingEngine.tokenize_line
+        else:
+            tokenizer = shared.sd_model.conditioner.embedders[0].tokenize_line if self.isxl else shared.sd_model.cond_stage_model.tokenize_line
 
         def getshedulednegs(scheduled,prompts):
             output = []
